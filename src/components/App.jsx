@@ -1,4 +1,3 @@
-import { Component } from 'react';
 import { SearchBar } from './SearchBar/SearchBar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Button } from './Button/Button';
@@ -7,78 +6,72 @@ import { Modal } from './Modal/Modal';
 import { fetchImages } from '../api/api';
 import { Notify } from 'notiflix';
 import { STATUSES } from 'constants/constants';
+import { useEffect, useState } from 'react';
 
-export class App extends Component {
-  state = {
-    status: STATUSES.idle,
-    perPage: 12,
-    query: '',
-    images: [],
-    page: 1,
-    totalHits: 0,
-    isModal: false,
-    selectedPhoto: null,
-    error: '',
-  };
+export const App = () => {
+  const [status, setStatus] = useState(STATUSES.idle);
+  const [perPage] = useState(12);
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalHits, setTotalHits] = useState(0);
+  const [isModal, setIsModal] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [error, setError] = useState('');
 
-  onSubmit = query => {
+  const onSubmit = query => {
     if (query !== '') {
-      this.setState({ query, page: 1, images: [] });
+      setQuery(query);
+      setPage(1);
+      setImages([]);
     }
   };
 
-  onLoadHandle = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const onLoadHandle = () => {
+    setPage(state => state + 1);
   };
 
-  onSelectedPhoto = url => {
-    this.setState({ selectedPhoto: url, isModal: true });
+  const onSelectedPhoto = url => {
+    setSelectedPhoto(url);
+    setIsModal(true);
   };
 
-  handleCloseModal = () => {
-    this.setState({ isModal: false });
+  const handleCloseModal = () => {
+    setIsModal(false);
   };
 
-  componentDidUpdate(_, prevState) {
-    const { query, page, perPage } = this.state;
+  useEffect(() => {
+    if (!query) return;
 
-    if (query !== prevState.query || page !== prevState.page) {
-      this.setState({ status: STATUSES.pending });
-      fetchImages(query, page, perPage)
-        .then(({ totalHits, hits }) => {
-          if (hits.length === 0) {
-            Notify.failure('There is no images with this query');
-            this.setState({ status: STATUSES.idle });
-            return;
-          }
-          this.setState(prevState => ({
-            status: STATUSES.resolved,
-            images: [...prevState.images, ...hits],
-            totalHits,
-          }));
-        })
-        .catch(error => {
-          this.setState({ status: STATUSES.rejected });
-          Notify.failure(`${error.message}`);
-        });
-    }
-  }
+    const searchImages = async () => {
+      try {
+        setStatus(STATUSES.pending);
+        const { totalHits, hits } = await fetchImages(query, page, perPage);
+        if (hits.length === 0) {
+          Notify.failure('There is no images with this query');
+          setStatus(STATUSES.idle);
+          return;
+        }
+        setStatus(STATUSES.resolved);
+        setImages(state => [...state, ...hits]);
+        setTotalHits(totalHits);
+      } catch (err) {
+        setError(err.message);
+        setStatus(STATUSES.rejected);
+        Notify.failure(err.message);
+      }
+    };
+    searchImages();
+  }, [query, page]);
 
-  render() {
-    const { images, totalHits, isModal, selectedPhoto, status } = this.state;
-    const showMore =
-      status === STATUSES.resolved && images.length !== totalHits;
-
-    return (
-      <>
-        <SearchBar onSubmit={this.onSubmit} />
-        <ImageGallery images={images} modalUrl={this.onSelectedPhoto} />
-        {status === STATUSES.pending && <Loader />}
-        {showMore && <Button loadMore={this.onLoadHandle} />}
-        {isModal && (
-          <Modal url={selectedPhoto} closeModal={this.handleCloseModal} />
-        )}
-      </>
-    );
-  }
-}
+  const showMore = status === STATUSES.resolved && images.length !== totalHits;
+  return (
+    <>
+      <SearchBar onSubmit={onSubmit} />
+      <ImageGallery images={images} modalUrl={onSelectedPhoto} />
+      {status === STATUSES.pending && <Loader />}
+      {showMore && <Button loadMore={onLoadHandle} />}
+      {isModal && <Modal url={selectedPhoto} closeModal={handleCloseModal} />}
+    </>
+  );
+};
