@@ -8,20 +8,19 @@ export const Modal = ({ closeModal, url }) => {
     }
   };
 
-  const handleEscapeClose = e => {
-    if (e.code === 'Escape') {
-      closeModal();
-    }
-  };
-
   useEffect(() => {
+    const handleEscapeClose = e => {
+      if (e.code === 'Escape') {
+        closeModal();
+      }
+    };
     document.body.style.overflow = 'hidden';
     window.addEventListener('keydown', handleEscapeClose);
     return () => {
       document.body.style.overflow = 'auto';
       window.removeEventListener('keydown', handleEscapeClose);
     };
-  }, []);
+  }, [closeModal]);
 
   return (
     <div className={css.overlay} onClick={handleOverlayClose}>
