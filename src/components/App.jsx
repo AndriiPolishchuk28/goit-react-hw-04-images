@@ -10,14 +10,12 @@ import { useEffect, useState } from 'react';
 
 export const App = () => {
   const [status, setStatus] = useState(STATUSES.idle);
-  const [perPage] = useState(12);
   const [query, setQuery] = useState('');
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(1);
   const [totalHits, setTotalHits] = useState(0);
   const [isModal, setIsModal] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [error, setError] = useState('');
 
   const onSubmit = query => {
     if (query !== '') {
@@ -46,7 +44,7 @@ export const App = () => {
     const searchImages = async () => {
       try {
         setStatus(STATUSES.pending);
-        const { totalHits, hits } = await fetchImages(query, page, perPage);
+        const { totalHits, hits } = await fetchImages(query, page);
         if (hits.length === 0) {
           Notify.failure('There is no images with this query');
           setStatus(STATUSES.idle);
@@ -56,7 +54,6 @@ export const App = () => {
         setImages(state => [...state, ...hits]);
         setTotalHits(totalHits);
       } catch (err) {
-        setError(err.message);
         setStatus(STATUSES.rejected);
         Notify.failure(err.message);
       }
